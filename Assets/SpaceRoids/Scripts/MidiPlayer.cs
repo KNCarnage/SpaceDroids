@@ -8,12 +8,30 @@ using AudioSynthesis.Sequencer;
 using AudioSynthesis.Midi;
 using System;
 using System.Collections.Generic;
+#if UNITY_WEBGL
+using System.Runtime.InteropServices;
+#endif
 
 namespace UnityMidi
 {
 	[RequireComponent(typeof(AudioSource))]
 	public class MidiPlayer : MonoBehaviour
 	{
+#if UNITY_WEBGL && !UNITY_EDITOR
+		[DllImport("__Internal")]
+		private static extern void InitMidi(int sampleRate, int BufferSize);
+
+		[DllImport("__Internal")]
+		private static extern void FillFrontBuffer(int frameCount, int sampleRate, float[] data, bool play);
+
+		[DllImport("__Internal")]
+		private static extern void FillRearBuffer(int frameCount, int sampleRate, float[] data, bool play);
+#endif
+
+#if UNITY_WEBGL
+		[HideInInspector]
+		int bufferSamples = 16;
+#endif
 		[SerializeField]
 		public StreamingAssetResouce bankExternalSourceFile;
 		public string bankResourceSourceFile = "soundfonts/Scc1t2.sf2";
@@ -98,11 +116,25 @@ namespace UnityMidi
 
 		public void Play()
 		{
+#if UNITY_WEBGL
+			sequencer.Play(Loop);
+			GetBufferData();
+#else
 			audioSource.clip = AudioClip.Create("Midi", bufferSize, channel, sampleRate, true, OnAudioRead);
-			audioSource.Play();
+			audioSource.spatialBlend = 0f;
 			sequencer.Play(loop);
+#endif
+			audioSource.Play();
 		}
 
+#if UNITY_WEBGL
+		public void Stop()
+		{
+			sequencer.Stop();
+			sequencer.ResetMidi();
+			sequencer.UnloadMidi();
+		}
+#else
 		public void Stop()
 		{
 			audioSource.Stop();
@@ -110,7 +142,7 @@ namespace UnityMidi
 			sequencer.ResetMidi();
 			sequencer.UnloadMidi();
 		}
-
+#endif
 		void FillBuffer()
 		{
 			sequencer.FillMidiEventQueue();
@@ -118,7 +150,54 @@ namespace UnityMidi
 			currentBuffer = synthesizer.WorkingBuffer;
 			bufferHead = 0;
 		}
+#if UNITY_WEBGL && UNITY_EDITOR
+		void InitMidi(int sampleRate, int BufferSize)
+		{
+		}
+		void FillFrontBuffer(int frameCount, int sampleRate, float[] data, bool play)
+		{
+		}
+		void FillRearBuffer(int frameCount, int sampleRate, float[] data, bool play)
+		{
+		}
+#endif
 
+#if UNITY_WEBGL
+		void GetBufferData()
+		{
+			MidiBuffer = new List<float>(bufferSamples * synthesizer.WorkingBufferSize);
+			for (int i = 0; i < bufferSamples; i++)
+			{
+				FillBuffer();
+				MidiBuffer.AddRange(currentBuffer);
+			}
+			FillFrontBuffer((MidiBuffer.Count) /2, sampleRate, MidiBuffer.ToArray(), false);
+			MidiBuffer.Clear();
+			for (int i = 0; i < bufferSamples; i++)
+			{
+				FillBuffer();
+				MidiBuffer.AddRange(currentBuffer);
+			}
+			FillRearBuffer((MidiBuffer.Count) / 2, sampleRate, MidiBuffer.ToArray(), true);
+		}
+
+		public void FillBuffer(bool front)
+		{
+			MidiBuffer.Clear();
+			if (sequencer.IsPlaying)
+			{
+				for (int i = 0; i < bufferSamples; i++)
+				{
+					FillBuffer();
+					MidiBuffer.AddRange(currentBuffer);
+				}
+			}
+			if (front)
+				FillFrontBuffer((MidiBuffer.Count) / 2, sampleRate, MidiBuffer.ToArray(), false);
+			else
+				FillRearBuffer((MidiBuffer.Count) / 2, sampleRate, MidiBuffer.ToArray(), false);
+		}
+#else
 		void OnAudioRead(float[] data)
 		{
 			int count = 0;
@@ -135,5 +214,6 @@ namespace UnityMidi
 				count += length;
 			}
 		}
+#endif
 	}
 }
