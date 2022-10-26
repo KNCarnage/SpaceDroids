@@ -50,6 +50,7 @@ namespace UnityMidi
 		int bufferHead = 0;
 		float[] currentBuffer;
 
+		public List<float> MidiBuffer;
 		public AudioSource AudioSource { get { return audioSource; } }
 
 		public MidiFileSequencer Sequencer { get { return sequencer; } }
@@ -63,7 +64,7 @@ namespace UnityMidi
 			synthesizer = new Synthesizer(sampleRate, channel, bufferSize, 1);
 			sequencer = new MidiFileSequencer(synthesizer);
 			audioSource = GetComponent<AudioSource>();
-
+			InitMidi(sampleRate, bufferSamples * bufferSize);
 			if (loadOnAwake)
 			{
 				LoadBank();
@@ -117,7 +118,7 @@ namespace UnityMidi
 		public void Play()
 		{
 #if UNITY_WEBGL
-			sequencer.Play(Loop);
+			sequencer.Play(loop);
 			GetBufferData();
 #else
 			audioSource.clip = AudioClip.Create("Midi", bufferSize, channel, sampleRate, true, OnAudioRead);
