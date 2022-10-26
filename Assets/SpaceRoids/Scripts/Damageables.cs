@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class Damageables : MonoBehaviour
 {
@@ -73,7 +74,11 @@ public class Damageables : MonoBehaviour
 		else
 		{
 			GameManager.Instance.GameOverScreen.SetActive(true);
+			TextMeshProUGUI goText = GameManager.Instance.GameOverScreen.GetComponent<TextMeshProUGUI>();
+			goText.text = $"GAME OVER\nYOUR SCORE IS\n{GameManager.Instance.Score}";
 			gameObject.SetActive(false);
+			Cursor.lockState = CursorLockMode.Confined;
+			Cursor.visible = true;
 		}
 	}
 

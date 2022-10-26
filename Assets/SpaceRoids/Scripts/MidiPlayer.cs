@@ -49,7 +49,6 @@ namespace UnityMidi
 			if (loadOnAwake)
 			{
 				LoadBank();
-				LoadMidi(new MidiFile(midiSource));
 			}
 		}
 
@@ -57,6 +56,7 @@ namespace UnityMidi
 		{
 			if (playOnStart)
 			{
+				LoadMidi(new MidiFile(midiSource));
 				Play();
 			}
 		}
@@ -74,7 +74,15 @@ namespace UnityMidi
 			synthesizer.UnloadBank();
 			synthesizer.LoadBank(bank);
 		}
+		public void StreamMidi(string Midisong)
+		{
+			TextAsset midisong = Resources.Load(Midisong) as TextAsset;
 
+			if (midisong == null)
+				throw new Exception("The bank file provided does not exist.");
+			LoadMidi(new MidiFile(midisong.bytes));
+			Play();
+		}
 		public void StreamMidi(byte[] Midisong)
 		{
 			LoadMidi(new MidiFile(Midisong));

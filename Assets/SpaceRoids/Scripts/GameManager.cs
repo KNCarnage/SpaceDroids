@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityMidi;
 
 [Serializable]
 public class ShootValues
@@ -24,7 +25,7 @@ public class GameManager : MonoBehaviour
 	public GameObject Nova;
 	public GameObject GameOverScreen;
 	public static GameManager Instance;
-
+	public MidiPlayer midiPlayer;
 	public UIInfo uIInfo;
 
 	public AudioClip hit;
@@ -36,6 +37,7 @@ public class GameManager : MonoBehaviour
 
 	public static bool Paused { get { return Instance.paused; } }
 
+	public static bool SetPaused { set { Instance.paused = value; } }
 	bool changeLevel = false;
 	bool UFOsent = true;
 	bool paused = false;
@@ -54,6 +56,12 @@ public class GameManager : MonoBehaviour
 	public int Score = 0;
 
 	MeshRenderer mr;
+
+	[SerializeField]
+	string[] musicLevel;
+
+	[HideInInspector]
+	public bool destroyEverything = false;
 	enum Level
 	{
 		LVL1,
@@ -70,6 +78,7 @@ public class GameManager : MonoBehaviour
 	private void Awake()
 	{
 		Instance = this;
+		midiPlayer = FindObjectOfType<MidiPlayer>();
 	}
 	private void Start()
 	{
@@ -79,6 +88,8 @@ public class GameManager : MonoBehaviour
 		StartCoroutine(CreateEnemyWave(currentEnemy, startCount, timeBetween));
 		mr = Nebula.GetComponent<MeshRenderer>();
 		uIInfo.UpdateLevelInfo((int)(level + 1), Round);
+		midiPlayer.Stop();
+		midiPlayer.StreamMidi(musicLevel[(int)(level)]);
 	}
 
 	private void Update()
@@ -246,6 +257,31 @@ public class GameManager : MonoBehaviour
 			paused = true;
 	}
 
+	public void StartGame()
+	{
+		Cursor.lockState = CursorLockMode.Locked;
+		Cursor.visible = false;
+		for (int i = 0; i < CurrentEnemies.Count; i++)
+		{
+			GameObject go = CurrentEnemies[i];
+			Destroy(go);
+		}
+		GameOverScreen.SetActive(false);
+		currentEnemy = Enemy[0];
+		Score = 0;
+		level = 0;
+		Round = 1;
+		startCount = 4;
+		DestroyImmediate(currentPlayer);
+		mr.material = Bck[(int)level];
+		currentPlayer = Instantiate(SpaceShips[0]).GetComponent<Player>();
+		StartCoroutine(CreateEnemyWave(currentEnemy, startCount, timeBetween));
+		uIInfo.UpdateLevelInfo((int)(level + 1), Round);
+		midiPlayer.Stop();
+		midiPlayer.StreamMidi(musicLevel[(int)(level)]);
+
+	}
+
 	public void ChangeLevel()
 	{
 		if (Round != 0)
@@ -256,12 +292,18 @@ public class GameManager : MonoBehaviour
 			if ((int)level < Bck.GetLength(0))
 				mr.material = Bck[(int)level];
 			Instantiate(Nova, currentPlayer.transform.position, Quaternion.identity);
+			destroyEverything = true;
+			if (musicLevel.GetLength(0) > (int)(level))
+				midiPlayer.Stop();
 		}
 		else
 		{
+			destroyEverything = false;
 			currentPlayer.health = currentPlayer.maxHealth;
 			currentPlayer.gameObject.SetActive(true);
 			changeLevel = false;
+			if (musicLevel.GetLength(0) > (int)(level))
+				midiPlayer.StreamMidi(musicLevel[(int)(level)]);
 		}
 	}
 

@@ -55,6 +55,12 @@ public class PickUp : MonoBehaviour, Transportable
 		currentPathPercent += speed / 100 * Time.deltaTime;
 		transform.position = GameManager.NewPositionByPath(pathPositions, currentPathPercent);
 
+		if (GameManager.Instance.destroyEverything)
+		{
+			Destroy(gameObject);
+			return;
+		}
+
 		if (currentPathPercent > 1)
 			Destroy(gameObject);
 	}
