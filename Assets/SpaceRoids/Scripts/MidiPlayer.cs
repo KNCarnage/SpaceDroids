@@ -198,6 +198,14 @@ namespace UnityMidi
 			else
 				FillRearBuffer((MidiBuffer.Count) / 2, sampleRate, MidiBuffer.ToArray(), false);
 		}
+		public void FillFrontBuffer()
+		{
+			FillBuffer(true);
+		}
+		public void FillRearBuffer()
+		{
+			FillBuffer(false);
+		}
 #else
 		void OnAudioRead(float[] data)
 		{
