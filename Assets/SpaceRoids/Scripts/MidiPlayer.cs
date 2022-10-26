@@ -64,7 +64,9 @@ namespace UnityMidi
 			synthesizer = new Synthesizer(sampleRate, channel, bufferSize, 1);
 			sequencer = new MidiFileSequencer(synthesizer);
 			audioSource = GetComponent<AudioSource>();
+#if UNITY_WEBGL
 			InitMidi(sampleRate, bufferSamples * bufferSize);
+#endif
 			if (loadOnAwake)
 			{
 				LoadBank();
